@@ -28,8 +28,9 @@ git clone https://huggingface.co/qresearch/llama-3-vision-alpha-hf
 ```
 > NOTE: For the section *Generated Images VQA*, MiniGPT-v2 and MiniGPT 4 is not working at the moment. Those are part of my tests for different image captioning tools :smile:
 
-**HPC Processing Specs**
-GPU Profile: 3g.40gb
-CPUs: 16
+**HPC Processing Specs** \
+GPU Profile: 3g.40gb\
+CPUs: 16\
 RAM: 64GB
+
 > NOTE: These are the settings that I used when using Monash HPC. This is **NOT** the minimum processing specs!
