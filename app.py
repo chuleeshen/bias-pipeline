@@ -1,5 +1,5 @@
 import streamlit as st
-from background import retrieve_keywords, sys_prompt_inst, gpt_4_api, convert_dict, setup_tti, setup_image_caption, all_adj_noun_results
+from background import retrieve_keywords, sys_prompt_inst, gpt_4_api, convert_dict, setup_tti, setup_image_caption, all_adj_noun_results, download_nltk_resources
 from openai import OpenAI
 import shutil
 
@@ -33,6 +33,7 @@ if specific_keyword:
   )
 
 if st.button("Submit"):
+  download_nltk_resources()
   keywords = retrieve_keywords(prompt)
   if not prompt.strip():
     st.error("The prompt cannot be empty. Please enter a valid prompt.")

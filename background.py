@@ -5,6 +5,7 @@ import os
 from PIL import Image
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from transformers import BitsAndBytesConfig
+import nltk
 from nltk import pos_tag, word_tokenize
 from collections import Counter
 import re
@@ -40,6 +41,12 @@ phrase_user = """
 Sentences: {sentences}
 Topic: {topic}
 """
+
+def download_nltk_resources():
+    nltk.download("averaged_perceptron_tagger")
+    nltk.download("punkt")
+    nltk.download("punkt_tab")
+    nltk.download("averaged_perceptron_tagger_eng")
 
 def retrieve_keywords(prompt):
     nlp = spacy.load("en_core_web_md")
@@ -176,7 +183,7 @@ def all_adj_noun_results(specific_bias, specific_keyword, prompt, related_keywor
   if not specific_bias:
     topics = topic_combo(key_bias)
   else:
-    topics = [specific_bias.replace('bias', '')]
+    topics = [specific_bias.replace('bias', '').strip()]
     
   generate_images(pipe, prompt, number_of_images, f'{save_path}/{prompt.replace(' ', '_')}/images')
     
@@ -208,6 +215,10 @@ def all_adj_noun_results(specific_bias, specific_keyword, prompt, related_keywor
       
       pair_counts = Counter(all_pairs)
       result = [(pair, freq) for pair, freq in pair_counts.items()]
+      
+      if topic not in results_dict:
+          results_dict[topic] = {}
+      
       results_dict[topic][current_prompt] = result
       write_file(f'{save_path}/{current_prompt.replace(' ', '_')}', f'{topic}_adj_noun_pairs.txt', result )
     
