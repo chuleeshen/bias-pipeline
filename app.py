@@ -1,6 +1,7 @@
 import streamlit as st
 from background import retrieve_keywords, sys_prompt_inst, gpt_4_api, convert_dict, setup_tti, setup_image_caption, bias_results, generate_top_k_phrases
 from openai import OpenAI
+import shutil
 
 st.title("BiasLens")
 st.write("A detection tool for potential biases in images generated from Text-to-Image (T2I) models")
@@ -18,8 +19,6 @@ number_of_images = st.number_input(
 )
 
 specific_bias = st.text_input("Specific Bias (optional)", placeholder="Enter a specific bias to test on")
-
-save_path = st.text_input("Results file path", placeholder="Enter a file path")
 
 specific_keyword = st.text_input(
     "Specific Keyword (optional)", 
@@ -88,12 +87,24 @@ if st.button("Submit"):
       model, tokenizer = setup_image_caption(model_path)
       progress_bar.progress(percent_complete + 20, text=progress_text)
       
+      zip_path = "bias_results.zip"
+      save_path = "results_temp"
       all_common = bias_results(specific_bias, specific_keyword, prompt, related_keywords, key_bias, pipe, number_of_images, save_path, tokenizer, model, gpt_client)
-      progress_bar.progress(percent_complete + 60, text=progress_text)
-      progress_bar.empty()
+      progress_bar.progress(percent_complete + 50, text=progress_text)
       
-      if percent_complete == 100:
-        st.toast(f'Results saved in {save_path}', icon="✨")
+      shutil.make_archive(zip_path.replace('.zip', ''), 'zip', save_path)
+      progress_bar.progress(percent_complete + 10, text=progress_text)
+      st.toast(f'Results saved in {save_path}', icon="✨")
+      
+      with open(zip_path, "rb") as f:
+        st.download_button(
+            label="Download Results",
+            data=f,
+            file_name="bias_results.zip",
+            mime="application/zip"
+        )
+
+      shutil.rmtree(save_path)
       
       # figure = generate_top_k_phrases(all_common, 10, save_path)
       # st.pyplot(figure)
