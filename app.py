@@ -1,11 +1,10 @@
 import streamlit as st
-from background import retrieve_keywords, sys_prompt_inst, gpt_4_api, convert_dict, setup_tti, setup_image_caption, bias_results, generate_top_k_phrases
+from background import retrieve_keywords, sys_prompt_inst, gpt_4_api, convert_dict, setup_tti, setup_image_caption, all_adj_noun_results
 from openai import OpenAI
 import shutil
 
 st.title("BiasLens")
 st.write("A detection tool for potential biases in images generated from Text-to-Image (T2I) models")
-
 
 prompt = st.text_input("Prompt", placeholder="Enter the prompt for image generation")
 
@@ -64,7 +63,7 @@ if st.button("Submit"):
       else: 
         st.error("Please specify OpenAI API key.")
         
-      if st.secrets.get():
+      if st.secrets.get("caption_model_path"):
         st.toast("Caption model path specified", icon="✅")
       else:
         st.error("Please specify caption model path")
@@ -89,7 +88,7 @@ if st.button("Submit"):
       
       zip_path = "bias_results.zip"
       save_path = "results_temp"
-      all_common = bias_results(specific_bias, specific_keyword, prompt, related_keywords, key_bias, pipe, number_of_images, save_path, tokenizer, model, gpt_client)
+      all_common = all_adj_noun_results(specific_bias, specific_keyword, prompt, related_keywords, key_bias, pipe, number_of_images, save_path, tokenizer, model, gpt_client)
       progress_bar.progress(percent_complete + 50, text=progress_text)
       
       shutil.make_archive(zip_path.replace('.zip', ''), 'zip', save_path)

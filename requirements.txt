@@ -9,3 +9,4 @@ torch
 nltk
 matplotlib
 spacy_streamlit
+shutil

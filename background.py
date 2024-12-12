@@ -170,7 +170,7 @@ def write_file(folder, filename, content):
     with open(file_path, 'w') as file:
         file.write(str(content))
         
-def bias_results(specific_bias, specific_keyword, prompt, related_keywords, key_bias, pipe, number_of_images, save_path, tokenizer, model, gpt_client):
+def all_adj_noun_results(specific_bias, specific_keyword, prompt, related_keywords, key_bias, pipe, number_of_images, save_path, tokenizer, model, gpt_client):
   captioning_prompt = "Describe the image"
   
   if not specific_bias:
@@ -198,7 +198,7 @@ def bias_results(specific_bias, specific_keyword, prompt, related_keywords, key_
     write_file(f'{save_path}/{current_prompt.replace(' ', '_')}', 'caption_list.txt', caption_list)
     
     for topic in topics:
-      related_phrases = topic_related_phrases(caption_list, topic, gpt_client)
+      related_phrases = topic_related_phrases(caption_list, topic, number_of_images, gpt_client)
       write_file(f'{save_path}/{current_prompt.replace(' ', '_')}', f'{topic}_related_phrases.txt', related_phrases)
     
       all_pairs = []
