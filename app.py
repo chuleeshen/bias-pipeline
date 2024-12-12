@@ -80,21 +80,28 @@ if st.button("Submit"):
       messages = [ {'role': 'system', 'content': sys_prompt_inst}, {'role': 'user', 'content': ', '.join(keywords)}]
       result = gpt_4_api(messages, gpt_client)
       key_bias = convert_dict(result)
-      progress_bar.progress(percent_complete + 20, text=progress_text)
+      percent_complete += 20
+      progress_text = "Processing prompt..."
+      progress_bar.progress(percent_complete, text=progress_text)
 
       model_path = st.secrets.get("caption_model_path")
       pipe = setup_tti()
       model, tokenizer = setup_image_caption(model_path)
-      progress_bar.progress(percent_complete + 20, text=progress_text)
+      percent_complete += 20
+      progress_text = "Setting up models and tokenizer..."
+      progress_bar.progress(percent_complete, text=progress_text)
       
       zip_path = "bias_results.zip"
       save_path = "results_temp"
       all_common = all_adj_noun_results(specific_bias, specific_keyword, prompt, related_keywords, key_bias, pipe, number_of_images, save_path, tokenizer, model, gpt_client)
-      progress_bar.progress(percent_complete + 50, text=progress_text)
+      percent_complete += 50
+      progress_text = "Generating adjective-noun pairs..."
+      progress_bar.progress(percent_complete, text=progress_text)
       
       shutil.make_archive(zip_path.replace('.zip', ''), 'zip', save_path)
-      progress_bar.progress(percent_complete + 10, text=progress_text)
-      st.toast(f'Results saved in {save_path}', icon="✨")
+      percent_complete += 10
+      progress_text = "Result package generated!"
+      progress_bar.progress(percent_complete, text=progress_text)
       
       with open(zip_path, "rb") as f:
         st.download_button(
