@@ -10,3 +10,5 @@ nltk
 matplotlib
 spacy_streamlit
 shutil
+seaborn
+pandas

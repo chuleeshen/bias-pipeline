@@ -9,7 +9,8 @@ import nltk
 from nltk import pos_tag, word_tokenize
 from collections import Counter
 import re
-import matplotlib.pyplot as plt
+import csv
+
 
 captioning_prompt = "Describe the image"
 
@@ -24,6 +25,7 @@ If there are no related biases, put a '-' after the keyword.
 keyword 1: bias 1, bias 2, bias 3 ...
 keyword 2: bias 1, bias 2, bias 3 ...
 keyword 3: bias 1, bias 2, bias 3 ...
+keyword 4: -
 """
 
 phrase_inst = """
@@ -67,9 +69,14 @@ def convert_dict(inp):
     entries = inp.split('\n')
     result_dict = {}
     for entry in entries:
-        key, values = entry.split(': ')
-        values_list = [value.strip() for value in values.split(',')]
-        result_dict[key] = values_list
+        if not entry.strip():
+          continue
+        key, values = entry.split(': ', 1)
+        if values.strip() == '-':
+          result_dict[key] = []
+        else:
+          values_list = [value.strip() for value in values.split(',')]
+          result_dict[key] = values_list
     return result_dict
 
 def setup_tti():
@@ -170,6 +177,35 @@ def extract_adj_noun_pairs(phrases):
     
     return adj_noun_pairs
 
+def generate_csv_with_matches(caption_list, prompt, save_path):
+    prompt_subject = " ".join(word for word, pos in pos_tag(word_tokenize(prompt)) if pos in {'NN', 'NNS', 'NNP', 'NNPS', 'JJ'})
+
+    csv_rows = []
+    for img_key, caption in caption_list.items():
+        img_file = f"{img_key}.png"
+        first_sentence = caption.split('.')[0]
+        caption_subject = " ".join(word for word, pos in pos_tag(word_tokenize(first_sentence)) if pos in {'NN', 'NNS', 'NNP', 'NNPS', 'JJ'})
+
+        # Check for match
+        match = prompt_subject.lower() in caption_subject.lower()
+
+        csv_rows.append({
+            "img_file": img_file,
+            "prompt_subject": prompt_subject,
+            "caption_subject": caption_subject,
+            "match": match
+        })
+
+
+    csv_path = os.path.join(save_path, "caption_subject_matches.csv")
+    os.makedirs(save_path, exist_ok=True)
+    with open(csv_path, mode='w', newline='', encoding='utf-8') as csv_file:
+        writer = csv.DictWriter(csv_file, fieldnames=["img_file", "prompt_subject", "caption_subject", "match"])
+        writer.writeheader()
+        writer.writerows(csv_rows)
+
+    return csv_path
+
 def write_file(folder, filename, content):
     file_path = os.path.join(folder, filename)
     os.makedirs(folder, exist_ok=True)
@@ -200,13 +236,15 @@ def all_adj_noun_results(specific_bias, specific_keyword, prompt, related_keywor
   results_dict = {}
   
   while index <= len(related_keywords):
-    img_save_path = f'{save_path}/{current_prompt.replace(' ', '_')}/images'
+    current_prompt_path = f'{save_path}/{current_prompt.replace(' ', '_')}'
+    img_save_path = f'{current_prompt_path}/images'
     caption_list = generate_captions(captioning_prompt, number_of_images, tokenizer, model, img_save_path)
-    write_file(f'{save_path}/{current_prompt.replace(' ', '_')}', 'caption_list.txt', caption_list)
+    write_file(current_prompt_path, 'caption_list.txt', caption_list)
+    generate_csv_with_matches(caption_list, current_prompt, current_prompt_path)
     
     for topic in topics:
       related_phrases = topic_related_phrases(caption_list, topic, number_of_images, gpt_client)
-      write_file(f'{save_path}/{current_prompt.replace(' ', '_')}', f'{topic}_related_phrases.txt', related_phrases)
+      write_file(current_prompt_path, f'{topic}_related_phrases.txt', related_phrases)
     
       all_pairs = []
       for _, phrases in related_phrases:
@@ -220,7 +258,7 @@ def all_adj_noun_results(specific_bias, specific_keyword, prompt, related_keywor
           results_dict[topic] = {}
       
       results_dict[topic][current_prompt] = result
-      write_file(f'{save_path}/{current_prompt.replace(' ', '_')}', f'{topic}_adj_noun_pairs.txt', result )
+      write_file(current_prompt_path, f'{topic}_adj_noun_pairs.txt', result)
     
     if has_other_keywords and index != len(related_keywords):
       current_prompt = current_prompt.replace(prev_keyword, related_keywords[index])
@@ -230,28 +268,3 @@ def all_adj_noun_results(specific_bias, specific_keyword, prompt, related_keywor
   
   write_file(save_path, f"all-results.txt", results_dict)
   return results_dict
-
-def generate_top_k_phrases(data_dict, k, output_dir):
-    pairs = {}
-    for sentence, pairs_list in data_dict.items():
-        for pair, freq in pairs_list:
-            if pair not in pairs:
-                pairs[pair] = freq
-            else:
-                pairs[pair] += freq
-    
-    sorted_phrases = sorted(pairs.items(), key=lambda x: x[1], reverse=True)[:k]
-    phrases, frequencies = zip(*sorted_phrases)
-    
-    figure = plt.figure(figsize=(20, 10))
-    plt.barh(phrases, frequencies)
-    plt.xlabel("Frequency")
-    plt.ylabel("Adjective-Noun Pair")
-    plt.title(f"Top {k} Adjective-Noun Phrases by Frequency")
-    plt.gca().invert_yaxis()
-    
-    chart_path = os.path.join(output_dir, f"top_{k}_phrases_bar_chart.png")
-    plt.savefig(chart_path)
-
-    return figure
-    
