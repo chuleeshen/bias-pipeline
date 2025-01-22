@@ -7,7 +7,7 @@ transformers
 pillow
 torch
 nltk
-matplotlib
+matplotlib==3.7.3
 spacy_streamlit
 shutil
 seaborn

@@ -1,5 +1,5 @@
 import streamlit as st
-from background import retrieve_keywords, sys_prompt_inst, gpt_4_api, convert_dict, setup_tti, setup_image_caption, all_adj_noun_results, download_nltk_resources
+from background import retrieve_keywords, sys_prompt_inst, gpt_4_api, convert_dict, setup_tti, setup_image_caption, all_adj_noun_results, download_nltk_resources, generate_csv_with_matches, compute_statistics, plot_bias_frequencies
 from openai import OpenAI
 import shutil
 
@@ -93,9 +93,16 @@ if st.button("Submit"):
       
       zip_path = "bias_results.zip"
       save_path = "results_temp"
+      
       all_common = all_adj_noun_results(specific_bias, specific_keyword, prompt, related_keywords, key_bias, pipe, number_of_images, save_path, tokenizer, model, gpt_client)
-      percent_complete += 50
+      percent_complete += 30
       progress_text = "Generating adjective-noun pairs..."
+      progress_bar.progress(percent_complete, text=progress_text)
+      
+      summary_stats = compute_statistics(all_common, save_path)
+      plot_bias_frequencies(all_common, save_path)
+      percent_complete += 20
+      progress_text = "Generating statistics and visualisations..."
       progress_bar.progress(percent_complete, text=progress_text)
       
       shutil.make_archive(zip_path.replace('.zip', ''), 'zip', save_path)
@@ -112,6 +119,3 @@ if st.button("Submit"):
         )
 
       shutil.rmtree(save_path)
-      
-      # figure = generate_top_k_phrases(all_common, 10, save_path)
-      # st.pyplot(figure)

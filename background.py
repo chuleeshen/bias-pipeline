@@ -3,13 +3,16 @@ import torch
 from diffusers import DiffusionPipeline, AutoencoderKL
 import os
 from PIL import Image
-from transformers import AutoModelForCausalLM, AutoTokenizer
-from transformers import BitsAndBytesConfig
+from transformers import AutoModelForCausalLM, AutoTokenizer, CLIPProcessor, CLIPModel, BitsAndBytesConfig
 import nltk
 from nltk import pos_tag, word_tokenize
 from collections import Counter
 import re
 import csv
+import pandas as pd
+import json
+import seaborn as sns
+import matplotlib.pyplot as plt
 
 
 captioning_prompt = "Describe the image"
@@ -177,30 +180,58 @@ def extract_adj_noun_pairs(phrases):
     
     return adj_noun_pairs
 
-def generate_csv_with_matches(caption_list, prompt, save_path):
-    prompt_subject = " ".join(word for word, pos in pos_tag(word_tokenize(prompt)) if pos in {'NN', 'NNS', 'NNP', 'NNPS', 'JJ'})
+def extract_subject(sentence):
+    nlp = spacy.load("en_core_web_md")
+    doc = nlp(sentence)
+    for token in doc:
+        if token.dep_ == "nsubj":
+            subject_parts = [token.text]
+            for child in token.children:
+                if child.dep_ in {"amod", "compound"}:
+                    subject_parts.insert(0, child.text)
+            return " ".join(subject_parts)
+    return None
+
+def generate_clip(keywords, image, model, processor):
+    inputs = processor(text=keywords, images=image, return_tensors="pt", padding=True)
+    outputs = model(**inputs)
+    logits_per_image = outputs.logits_per_image
+    probs = logits_per_image.softmax(dim=1)
+    extracted = probs.tolist()[0]
+    result_dict = dict(zip(keywords, extracted))
+    return json.dumps(result_dict)
+
+def generate_csv_with_matches(caption_list, prompt, save_path, model, processor):
+    prompt_subject = extract_subject(prompt)
 
     csv_rows = []
     for img_key, caption in caption_list.items():
         img_file = f"{img_key}.png"
-        first_sentence = caption.split('.')[0]
-        caption_subject = " ".join(word for word, pos in pos_tag(word_tokenize(first_sentence)) if pos in {'NN', 'NNS', 'NNP', 'NNPS', 'JJ'})
-
-        # Check for match
-        match = prompt_subject.lower() in caption_subject.lower()
+        
+        first_sentence = caption.split('.')[0] + "."
+        caption_subject = extract_subject(first_sentence)
+        
+        keywords = [prompt_subject, caption_subject]
+        
+        clip_json = 'subject detection error'
+        if None not in keywords:
+            image_path = os.path.join(f'{save_path}/images', img_file)
+            image = Image.open(image_path)
+            clip_json = generate_clip(keywords, image, model, processor)
 
         csv_rows.append({
             "img_file": img_file,
             "prompt_subject": prompt_subject,
             "caption_subject": caption_subject,
-            "match": match
+            "clip": clip_json
         })
 
 
     csv_path = os.path.join(save_path, "caption_subject_matches.csv")
     os.makedirs(save_path, exist_ok=True)
+
     with open(csv_path, mode='w', newline='', encoding='utf-8') as csv_file:
-        writer = csv.DictWriter(csv_file, fieldnames=["img_file", "prompt_subject", "caption_subject", "match"])
+        writer = csv.DictWriter(csv_file, fieldnames=["img_file", "prompt_subject", "caption_subject", "clip"])
         writer.writeheader()
         writer.writerows(csv_rows)
 
@@ -211,10 +242,16 @@ def write_file(folder, filename, content):
     os.makedirs(folder, exist_ok=True)
     
     with open(file_path, 'w') as file:
-        file.write(str(content))
+        if filename.endswith('.json'):
+            json.dump(content, file, indent=4)
+        else:
+            file.write(str(content))
         
 def all_adj_noun_results(specific_bias, specific_keyword, prompt, related_keywords, key_bias, pipe, number_of_images, save_path, tokenizer, model, gpt_client):
-  captioning_prompt = "Describe the image"
+  captioning_prompt = "Describe the image without introductory phrases like 'The image shows'."
+  
+  clip_model = CLIPModel.from_pretrained("openai/clip-vit-large-patch14")
+  clip_processor = CLIPProcessor.from_pretrained("openai/clip-vit-large-patch14")
   
   if not specific_bias:
     topics = topic_combo(key_bias)
@@ -240,7 +277,7 @@ def all_adj_noun_results(specific_bias, specific_keyword, prompt, related_keywor
     img_save_path = f'{current_prompt_path}/images'
     caption_list = generate_captions(captioning_prompt, number_of_images, tokenizer, model, img_save_path)
     write_file(current_prompt_path, 'caption_list.txt', caption_list)
-    generate_csv_with_matches(caption_list, current_prompt, current_prompt_path)
+    generate_csv_with_matches(caption_list, current_prompt, current_prompt_path, clip_model, clip_processor)
     
     for topic in topics:
       related_phrases = topic_related_phrases(caption_list, topic, number_of_images, gpt_client)
@@ -252,7 +289,7 @@ def all_adj_noun_results(specific_bias, specific_keyword, prompt, related_keywor
         all_pairs.extend(adj_noun_pairs)
       
       pair_counts = Counter(all_pairs)
-      result = [(pair, freq) for pair, freq in pair_counts.items()]
+      result = [[pair, freq] for pair, freq in pair_counts.items()]
       
       if topic not in results_dict:
           results_dict[topic] = {}
@@ -266,5 +303,111 @@ def all_adj_noun_results(specific_bias, specific_keyword, prompt, related_keywor
       
     index = index + 1
   
-  write_file(save_path, f"all-results.txt", results_dict)
+  write_file(save_path, "all-results.txt", results_dict)
   return results_dict
+
+def compute_statistics(data, save_path):
+    summary = {}
+    
+    for bias_type, prompts in data.items():
+        prompt_list = []
+        adjectives_by_prompt = {}
+        nouns_by_prompt = {}
+
+        for prompt, pairs in prompts.items():
+            if not pairs:
+                continue
+
+            prompt_list.append(prompt)
+            df = pd.DataFrame(pairs, columns=['adjective_noun', 'frequency'])
+            df[['adjective', 'noun']] = df['adjective_noun'].str.split(' ', expand=True, n=1)
+            
+            adjectives_by_prompt[prompt] = set(df['adjective'])
+            nouns_by_prompt[prompt] = set(df['noun'])
+        
+        common_adjectives = '-'
+        common_nouns = '-'
+        unique_adjectives = '-'
+        unique_nouns = '-'
+        
+        if len(prompt_list) > 1:
+            if adjectives_by_prompt:
+                common_adj_set = set.intersection(*[adjectives_by_prompt[prompt] for prompt in prompt_list])
+                common_adjectives = list(common_adj_set)
+                unique_adjectives = {
+                    prompt: list(adjectives_by_prompt[prompt] - common_adj_set)
+                    for prompt in prompt_list
+                }
+            
+            if nouns_by_prompt:
+                common_noun_set = set.intersection(*[nouns_by_prompt[prompt] for prompt in prompt_list])
+                common_nouns = list(common_noun_set)
+                unique_nouns = {
+                    prompt: list(nouns_by_prompt[prompt] - common_noun_set)
+                    for prompt in prompt_list
+                }
+        elif len(prompt_list) == 1:
+            single_prompt = prompt_list[0]
+            unique_adjectives = {single_prompt: list(adjectives_by_prompt[single_prompt])}
+            unique_nouns = {single_prompt: list(nouns_by_prompt[single_prompt])}
+
+        summary[bias_type] = {
+            'common_adjectives': common_adjectives,
+            'common_nouns': common_nouns,
+            'unique_adjectives': unique_adjectives,
+            'unique_nouns': unique_nouns
+        }
+            
+    write_file(save_path, "summary_stats.json", summary)
+    return summary
+
+def plot_bias_frequencies(data, save_path):
+    graph_path = f'{save_path}/graphs'
+    if not os.path.exists(graph_path):
+        os.makedirs(graph_path)
+        
+    for bias_type, prompts in data.items():
+        combined_data = []
+        for prompt, pairs in prompts.items():
+            for item in pairs:
+                combined_data.append({
+                    'adjective_noun': item[0],
+                    'frequency': item[1],
+                    'prompt': prompt
+                })
+        
+        if not combined_data:
+            continue
+        
+        df = pd.DataFrame(combined_data)
+
+        pivot_table = df.pivot_table(
+            index='prompt',
+            columns='adjective_noun',
+            values='frequency',
+            aggfunc='sum',
+            fill_value=0
+        )
+        
+        max_frequency = int(pivot_table.values.max())
+        
+        plt.figure(figsize=(30, 25))
+        heatmap = sns.heatmap(
+            pivot_table,
+            annot=True,
+            fmt="g",
+            annot_kws={"size": 10},
+            cmap="rocket",
+            cbar_kws={'label': 'Frequency', 'ticks': range(0, max_frequency + 2, 1)},
+            vmin=0,
+            vmax=max_frequency
+        )
+        heatmap.set_title(f"Heatmap of Adjective-Noun Frequencies for Bias: {bias_type}", fontsize=16)
+        heatmap.set_xlabel("Prompt", fontsize=12)
+        heatmap.set_ylabel("Adjective-Noun Pair", fontsize=12)
+        heatmap.set_ylim()
+
+        output_path = os.path.join(graph_path, f"{bias_type}_heatmap.png")
+        
+        plt.savefig(output_path)
+        plt.close()
