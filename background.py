@@ -129,6 +129,28 @@ def setup_image_caption(model_path):
     
     return model, tokenizer
 
+def process_introductory(input_text):
+    words = re.findall(r'\w+|[.,!?;]', input_text.lower())
+    i = 0
+    while i < len(words) - 2:
+        if words[i] == 'the' and words[i+1] == 'image' and words[i+2] == 'shows':
+            del words[i:i+3]
+        else:
+            i += 1
+
+    processed_text = " ".join(words)
+
+    processed_text = re.sub(r'\s([.,!?;])', r'\1', processed_text)
+
+    def capitalize_sentences(text):
+        sentences = re.split(r'([.!?]\s*)', text)
+        sentences = [s.capitalize() for s in sentences]
+        return ''.join(sentences)
+
+    result = capitalize_sentences(processed_text)
+
+    return result
+
 def generate_captions(captioning_prompt, number_of_images, tokenizer, model, img_save_path): 
   caption_dict = {}
   for i in range(number_of_images):
@@ -137,7 +159,7 @@ def generate_captions(captioning_prompt, number_of_images, tokenizer, model, img
 
     desc_output = tokenizer.decode(model.answer_question(image, captioning_prompt, tokenizer), skip_special_tokens=True)
     
-    caption_dict[i] = desc_output
+    caption_dict[i] = process_introductory(desc_output)
   
   return caption_dict
 
@@ -183,14 +205,23 @@ def extract_adj_noun_pairs(phrases):
 def extract_subject(sentence):
     nlp = spacy.load("en_core_web_md")
     doc = nlp(sentence)
+    subjects = []
+    
     for token in doc:
-        if token.dep_ == "nsubj":
+        if token.dep_ == "nsubj" or (token.dep_ == "ROOT" and token.pos_ in {"NOUN", "PROPN"}):
             subject_parts = [token.text]
             for child in token.children:
                 if child.dep_ in {"amod", "compound"}:
                     subject_parts.insert(0, child.text)
-            return " ".join(subject_parts)
-    return None
+            subjects.append(" ".join(subject_parts))
+            
+            for sibling in token.conjuncts:
+                sibling_parts = [sibling.text]
+                for child in sibling.children:
+                    if child.dep_ in {"amod", "compound"}:
+                        sibling_parts.insert(0, child.text)
+                subjects.append(" ".join(sibling_parts))          
+    return subjects
 
 def generate_clip(keywords, image, model, processor):
     inputs = processor(text=keywords, images=image, return_tensors="pt", padding=True)
@@ -211,18 +242,18 @@ def generate_csv_with_matches(caption_list, prompt, save_path, model, processor)
         first_sentence = caption.split('.')[0] + "."
         caption_subject = extract_subject(first_sentence)
         
-        keywords = [prompt_subject, caption_subject]
+        keywords = prompt_subject + caption_subject
         
         clip_json = 'subject detection error'
-        if None not in keywords:
+        if prompt_subject and caption_subject:
             image_path = os.path.join(f'{save_path}/images', img_file)
             image = Image.open(image_path)
             clip_json = generate_clip(keywords, image, model, processor)
 
         csv_rows.append({
             "img_file": img_file,
-            "prompt_subject": prompt_subject,
-            "caption_subject": caption_subject,
+            "prompt_subject": ", ".join(prompt_subject),
+            "caption_subject": ", ".join(caption_subject),
             "clip": clip_json
         })
 
@@ -248,7 +279,7 @@ def write_file(folder, filename, content):
             file.write(str(content))
         
 def all_adj_noun_results(specific_bias, specific_keyword, prompt, related_keywords, key_bias, pipe, number_of_images, save_path, tokenizer, model, gpt_client):
-  captioning_prompt = "Describe the image without introductory phrases like 'The image shows'."
+  captioning_prompt = "Describe the image with the introductory phrase 'The image shows'. Avoid any mention of the image's stylistic aspects."
   
   clip_model = CLIPModel.from_pretrained("openai/clip-vit-large-patch14")
   clip_processor = CLIPProcessor.from_pretrained("openai/clip-vit-large-patch14")
