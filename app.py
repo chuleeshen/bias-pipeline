@@ -1,5 +1,5 @@
 import streamlit as st
-from background import retrieve_keywords, sys_prompt_inst, gpt_4_api, convert_dict, setup_tti, setup_image_caption, all_adj_noun_results, download_nltk_resources, generate_csv_with_matches, compute_statistics, plot_bias_frequencies
+from background import retrieve_keywords, sys_prompt_inst, gpt_4_api, convert_dict, setup_tti, setup_image_caption, all_adj_noun_results, generate_html_dashboard, compute_statistics, plot_bias_frequencies, save_readme
 from openai import OpenAI
 import shutil
 
@@ -33,7 +33,6 @@ if specific_keyword:
   )
 
 if st.button("Submit"):
-  download_nltk_resources()
   keywords = retrieve_keywords(prompt)
   if not prompt.strip():
     st.error("The prompt cannot be empty. Please enter a valid prompt.")
@@ -101,10 +100,12 @@ if st.button("Submit"):
       
       summary_stats = compute_statistics(all_common, save_path)
       plot_bias_frequencies(all_common, save_path)
+      generate_html_dashboard(all_common, summary_stats, save_path)
       percent_complete += 20
       progress_text = "Generating statistics and visualisations..."
       progress_bar.progress(percent_complete, text=progress_text)
       
+      save_readme(save_path)
       shutil.make_archive(zip_path.replace('.zip', ''), 'zip', save_path)
       percent_complete += 10
       progress_text = "Result package generated!"

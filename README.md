@@ -2,35 +2,69 @@
 
 This is a repo for the pipeline to detect bias.
 
----
-
-⚠️ **IMPORTANT**⚠️
-
-This code is work in progress and experimental.
-
----
-
 ## Author
 
 This pipeline has been developed by:
 - Chu Lee Shen
 
-## Development
-### Prerequisites
-In order for the image captioning part (LLaMA 3 with vision capabilities using SIGLIP) to work, you need to clone the [llama-3-vision-alpha-hf](https://huggingface.co/qresearch/llama-3-vision-alpha-hf/tree/main) model:
+## Quickstart
 
+1. Open terminal and clone the repository:
 ```
-# Make sure you have git-lfs installed
+git clone https://github.com/chuleeshen/bias-pipeline.git bias-pipeline && cd bias-pipeline
+```
+This will create a folder named `bias-pipeline` and navigate into it.
+
+
+2. Move up one directory level:
+```
+cd ..
+```
+
+3. Ensure you have `git-lfs` installed (if not installed already):
+```
 git lfs install
 ```
+
+4. Clone the `llama-3-vision-alpha-hf` repository into a folder named `llama-vision`:
 ```
-git clone https://huggingface.co/qresearch/llama-3-vision-alpha-hf
+git clone https://huggingface.co/qresearch/llama-3-vision-alpha-hf llama-vision
 ```
-> NOTE: For the section *Generated Images VQA*, MiniGPT-v2 and MiniGPT 4 is not working at the moment. Those are part of my tests for different image captioning tools :smile:
+
+5. Navigate back into the `bias-pipeline` folder to continue:
+```
+cd bias-pipeline
+```
+
+6. Before proceeding, you need to install **Streamlit**, run in terminal:
+
+```bash
+pip install streamlit
+```
+
+7. Open the secrets file for editing:
+```
+nano .streamlit/secrets.toml
+```
+
+8. Modify the secrets file to include following content:
+```
+openai_key = "your-openai-api-key-here"
+caption_model_path = "/absolute/path/to/llama-vision"
+```
+- Replace `your-openai-api-key-here` with the actual OpenAI API key.
+- Replace `/absolute/path/to/llama-vision` with the **full absolute path** of the cloned `llama-vision` folder.
+
+9. You can now start the Streamlit app by running:
+```
+streamlit run app.py
+```
+
+---
 
 **HPC Processing Specs** \
 GPU Profile: 3g.40gb\
 CPUs: 16\
 RAM: 64GB
 
-> NOTE: These are the settings that I used when using Monash HPC. This is **NOT** the minimum processing specs!
+> NOTE: These are the settings when using the HPC infrastructure by Monash University Malaysia. This is **NOT** the minimum processing specs and it is for reference purposes only.

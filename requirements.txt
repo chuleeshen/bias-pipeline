@@ -6,7 +6,6 @@ autotrain-advanced
 transformers
 pillow
 torch
-nltk
 matplotlib==3.7.3
 spacy_streamlit
 shutil
