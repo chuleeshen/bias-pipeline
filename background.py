@@ -1178,7 +1178,7 @@ def generate_html_dashboard(results, summary_stats, save_path):
                         }}
                     }});
 
-                    const containerWidth = 1050;
+                    const containerWidth = 1400;
                     const containerHeight = 500;
                   
                     const margin = {{ top: 5, right: 0, bottom: 0, left: 5 }};
