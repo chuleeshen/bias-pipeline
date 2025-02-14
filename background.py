@@ -3,7 +3,7 @@ import torch
 from diffusers import DiffusionPipeline, AutoencoderKL
 import os
 from PIL import Image
-from transformers import AutoModelForCausalLM, AutoTokenizer, CLIPProcessor, CLIPModel, BitsAndBytesConfig
+from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
 from collections import Counter
 import re
 import csv
@@ -226,7 +226,7 @@ def extract_subject(sentence):
                 subjects.append(" ".join(sibling_parts))          
     return subjects
 
-def generate_csv_with_matches(caption_list, prompt, save_path, model, processor):
+def generate_csv_with_matches(caption_list, prompt, save_path):
     prompt_subject = extract_subject(prompt)
 
     csv_rows = []
@@ -247,7 +247,7 @@ def generate_csv_with_matches(caption_list, prompt, save_path, model, processor)
     os.makedirs(save_path, exist_ok=True)
 
     with open(csv_path, mode='w', newline='', encoding='utf-8') as csv_file:
-        writer = csv.DictWriter(csv_file, fieldnames=["img_file", "prompt_subject", "caption_subject", "clip"])
+        writer = csv.DictWriter(csv_file, fieldnames=["img_file", "prompt_subject", "caption_subject"])
         writer.writeheader()
         writer.writerows(csv_rows)
 
@@ -265,9 +265,6 @@ def write_file(folder, filename, content):
         
 def all_adj_noun_results(specific_bias, specific_keyword, prompt, related_keywords, key_bias, pipe, number_of_images, save_path, tokenizer, model, gpt_client):
   captioning_prompt = "Describe the image with the introductory phrase 'The image shows'. Avoid any mention of the image's stylistic aspects."
-  
-  clip_model = CLIPModel.from_pretrained("openai/clip-vit-large-patch14")
-  clip_processor = CLIPProcessor.from_pretrained("openai/clip-vit-large-patch14")
   
   if not specific_bias:
     topics = topic_combo(key_bias)
@@ -293,7 +290,7 @@ def all_adj_noun_results(specific_bias, specific_keyword, prompt, related_keywor
     img_save_path = f'{current_prompt_path}/images'
     caption_list = generate_captions(captioning_prompt, number_of_images, tokenizer, model, img_save_path)
     write_file(current_prompt_path, 'caption_list.txt', caption_list)
-    generate_csv_with_matches(caption_list, current_prompt, current_prompt_path, clip_model, clip_processor)
+    generate_csv_with_matches(caption_list, current_prompt, current_prompt_path)
     
     for topic in topics:
       related_phrases = topic_related_phrases(caption_list, topic, number_of_images, gpt_client)
