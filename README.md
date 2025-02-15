@@ -1,4 +1,4 @@
-# Bias Pipeline
+# BiasLens
 
 This is a repo for the pipeline to detect bias.
 
