@@ -769,8 +769,8 @@ def generate_html_dashboard(results, summary_stats, save_path):
                     <option value="adj">Adjectives</option>
                     <option value="noun">Nouns</option>
                 </select>
-                <div id="bcs-section">
-                    <p id="bcs-value">Select a bias to calculate BCS...</p>
+                <div id="jsi-section">
+                    <p id="jsi-value">Select a bias to calculate JSI...</p>
                 </div>
                 <div id="upset-container"></div>
                 <div id="upset-tooltip"></div>
@@ -1091,7 +1091,7 @@ def generate_html_dashboard(results, summary_stats, save_path):
                     }});
             }}
             
-            function calculateBCS(bias) {{
+            function calculateJSI(bias) {{
                 let commonNodes = summary[bias]?.common_pairs || {{}};
                 let uniqueNodes = summary[bias]?.unique_pairs || {{}};
                 
@@ -1118,9 +1118,9 @@ def generate_html_dashboard(results, summary_stats, save_path):
                     }}
                 }}
 
-                let BCS = totalIntersections > 0 ? (multiNationalityIntersections / totalIntersections).toFixed(2) : 0;
+                let JSI = totalIntersections > 0 ? (multiNationalityIntersections / totalIntersections).toFixed(2) : 0;
 
-                document.getElementById("bcs-value").innerText = `Bias Consistency Score (BCS) for ${{bias}}: ${{BCS}}`;
+                document.getElementById("jsi-value").innerText = `Jaccard Similarity Index (JSI) for ${{bias}}: ${{JSI}}`;
             }}
 
             function updateUpSetPlot(value) {{
@@ -1421,12 +1421,12 @@ def generate_html_dashboard(results, summary_stats, save_path):
             }})
 
             updateVisualisations(bias);
-            calculateBCS(bias);
+            calculateJSI(bias);
             
             document.getElementById("biasSelect").onchange = function() {{
                 let selectedBias = this.value;
                 updateVisualisations(selectedBias);
-                calculateBCS(selectedBias);
+                calculateJSI(selectedBias);
             }};
             document.getElementById("topK").oninput = function() {{ document.getElementById("topKValue").innerText = this.value; updateBarCharts(); }};
             document.getElementById("upsetSelect").onchange = function() {{ updateUpSetPlot(this.value); }};
