@@ -769,6 +769,9 @@ def generate_html_dashboard(results, summary_stats, save_path):
                     <option value="adj">Adjectives</option>
                     <option value="noun">Nouns</option>
                 </select>
+                <div id="bcs-section">
+                    <p id="bcs-value">Select a bias to calculate BCS...</p>
+                </div>
                 <div id="upset-container"></div>
                 <div id="upset-tooltip"></div>
             </div>
@@ -1087,6 +1090,38 @@ def generate_html_dashboard(results, summary_stats, save_path):
                         d3.select(this).style("stroke", "#fff");
                     }});
             }}
+            
+            function calculateBCS(bias) {{
+                let commonNodes = summary[bias]?.common_pairs || {{}};
+                let uniqueNodes = summary[bias]?.unique_pairs || {{}};
+                
+                let totalIntersections = 0;
+                let multiNationalityIntersections = 0;
+
+                if (Array.isArray(commonNodes.all)) {{
+                    totalIntersections += commonNodes.all.length;
+                    multiNationalityIntersections += commonNodes.all.length;
+                }}
+
+                if (commonNodes.partial) {{
+                    for (const [pair, nationalities] of Object.entries(commonNodes.partial)) {{
+                        totalIntersections++;
+                        if (nationalities.length > 1) {{
+                            multiNationalityIntersections++;
+                        }}
+                    }}
+                }}
+                
+                if (uniqueNodes) {{
+                    for (const [_, pairs] of Object.entries(uniqueNodes)) {{
+                        totalIntersections += pairs.length;
+                    }}
+                }}
+
+                let BCS = totalIntersections > 0 ? (multiNationalityIntersections / totalIntersections).toFixed(2) : 0;
+
+                document.getElementById("bcs-value").innerText = `Bias Consistency Score (BCS) for ${{bias}}: ${{BCS}}`;
+            }}
 
             function updateUpSetPlot(value) {{
                 const bias = document.getElementById("biasSelect").value;
@@ -1386,8 +1421,13 @@ def generate_html_dashboard(results, summary_stats, save_path):
             }})
 
             updateVisualisations(bias);
+            calculateBCS(bias);
             
-            document.getElementById("biasSelect").onchange = function() {{ updateVisualisations(this.value); }};
+            document.getElementById("biasSelect").onchange = function() {{
+                let selectedBias = this.value;
+                updateVisualisations(selectedBias);
+                calculateBCS(selectedBias);
+            }};
             document.getElementById("topK").oninput = function() {{ document.getElementById("topKValue").innerText = this.value; updateBarCharts(); }};
             document.getElementById("upsetSelect").onchange = function() {{ updateUpSetPlot(this.value); }};
             document.getElementById("cloudSelect").onchange = function() {{ updateWordCloud(this.value); }};
