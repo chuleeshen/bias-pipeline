@@ -6,6 +6,28 @@ import shutil
 st.title("BiasLens")
 st.write("A detection tool for potential biases in images generated from Text-to-Image (T2I) models")
 
+# Expandable Help Section
+with st.expander("⭐ How to Use BiasLens ⭐"):
+    st.markdown("""
+    **BiasLens** helps you detect potential biases in images generated from text-to-image (T2I) models.
+    
+    **Steps to Use:**
+    1. **Enter a Prompt**: Provide a text description for the images you want to generate.
+    2. **Set Number of Images**: Select the number of images to generate for bias analysis (minimum 2).
+    3. **(Optional) Specify a Bias**: Enter a bias you want to test for specifically.
+    4. **(Optional) Specify a Keyword**: Enter a keyword from the prompt that you want to analyse, and then upload a file containing related keywords. The prompt will run once, then it will subsequently run the related-keyword prompts.
+    5. **Submit & Process**: Click "Submit" to generate images and analyse biases.
+    6. **Download Results**: Once completed, you can download a `.zip` file containing:
+       - Generated images
+       - Extracted bias-related elements
+       - Statistical summaries
+       - Visualization dashboard
+    
+    Tips:
+    - Tip 1: If you’re unsure about what bias to test for, leave the "Specific Bias" field empty, and BiasLens will automatically detect potential biases.
+    - Tip 2: If you don't have a specific keyword from the prompt that you want to analyse on, leave the "Specific Keyword" field empty.
+    """)
+
 prompt = st.text_input("Prompt", placeholder="Enter the prompt for image generation")
 
 number_of_images = st.number_input(
