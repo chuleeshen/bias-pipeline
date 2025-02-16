@@ -105,4 +105,4 @@ GPU Profile: 3g.40gb\
 CPUs: 16\
 RAM: 64GB
 
-> NOTE: These are the settings when using the HPC infrastructure by Monash University Malaysia. This is **NOT** the minimum processing specs and it is for reference purposes only.
+> NOTE: These are the settings when using the HPC infrastructure. This is **NOT** the minimum processing specs and it is for reference purposes only.
