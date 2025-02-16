@@ -1,27 +1,27 @@
 # BiasLens: A Software Testing Tool for Revealing Hidden Biases in Text-to-Image Models
 
 ## 🚀 Quick Start
-- [Introduction](#%f0%9f%93%96-introduction)
-- [Key Features](#%e2%ad%90-key-features)
-- [Installation](#%e2%9a%99%ef%b8%8f-installation)
-- [Usage](#%f0%9f%9a%a9-usage)
-- [Case Study](#%f0%9f%93%8a-case-study-nationality-bias-in-image-generation)
-- [Specifications](#%f0%9f%94%8d-specifications)
+- [Introduction](#introduction)
+- [Key Features](#key-features)
+- [Installation](#installation)
+- [Usage](#usage)
+- [Case Study](#case-study-nationality-bias-in-image-generation)
+- [Specifications](#specifications)
 
-## 📖 Introduction
+## Introduction
 Bias in Text-to-Image (T2I) models remains a significant concern, as these models may unintentionally amplify societal biases, reinforcing harmful stereotypes and shaping perceptions. Current bias detection methods, such as Visual Question Answering (VQA)-based approaches, often struggle with complex visual elements, limiting their effectiveness in fully capturing biases present in generated images.
 
 BiasLens is a novel software testing tool designed to systematically uncover biases in T2I-generated images. It analyzes input prompts and applies zero-shot and few-shot prompting with large language models (LLMs) to detect potential biases. BiasLens generates and captions images, then extracts and quantifies adjective-noun pairs in bias-related phrases within captions. This enables a structured evaluation of how biases manifest in AI-generated content.
 
 ![BiasLens Pipeline](./pipeline.png)
 
-## ⭐ Key Features
+## Key Features
 - **Prompt-Based Bias Identification**: Extracts bias-related keywords from user prompts and identifies associated biases using LLMs.
 - **Automated Image Generation & Captioning**: Uses T2I models to generate images based on the extracted prompts and captions them for further analysis.
 - **Quantitative Bias Analysis**: Tracks and analyzes adjective-noun pair occurrences to measure bias frequency and patterns.
 - **Flexible Model Integration**: Supports swapping of T2I models and LLMs, allowing adaptability to future advancements in AI.
 
-## ⚙️ Installation
+## Installation
 1. Open terminal and clone the repository:
 ```
 git clone https://github.com/chuleeshen/bias-pipeline.git bias-pipeline && cd bias-pipeline
@@ -73,7 +73,7 @@ caption_model_path = "/absolute/path/to/llama-vision"
 streamlit run app.py
 ```
 
-## 🚩 Usage
+## Usage
 BiasLens is an **interactive Streamlit app** for an intuitive, user-friendly experience.
 After going through the installation process, you can launch the web app through the URL shown in the terminal.
 
@@ -94,12 +94,12 @@ The downloaded results contain:
 
 _📌 For a full breakdown of the result package contents and how to interpret them, see the README file inside the result package._<br />
 
-## 📊 Case Study: Nationality Bias in Image Generation
+## Case Study: Nationality Bias in Image Generation
 We applied BiasLens to evaluate biases in Stable Diffusion XL, focusing on the depiction of individuals from Southeast Asian countries vs. Western countries. Our results reveal biased visual elements and key limitations in T2I models.
 
 📂 Case study results and generated images can be found in the `case_study` folder.
 
-## 🔍 Specifications
+## Specifications
 **HPC Processing Specs** \
 GPU Profile: 3g.40gb\
 CPUs: 16\
