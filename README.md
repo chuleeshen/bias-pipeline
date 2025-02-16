@@ -1,10 +1,5 @@
 # BiasLens: A Software Testing Tool for Revealing Hidden Biases in Text-to-Image Models
 
-## Author
-
-This pipeline has been developed by:
-- Chu Lee Shen
-
 ## 🚀 Quick Start
 - [Introduction](#introduction)
 - [Key Features](#key-features)
